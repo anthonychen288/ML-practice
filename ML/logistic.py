@@ -83,17 +83,6 @@ def design_matrix(x, n_feats):
 			else:
 				design_m[i][j] = x[i][j]
 	return np.array(design_m)
-'''def weight_matrix(w, x):
-	n_data = len(x)
-	n_feats = len(w)
-	w_x = [0.0] * n_data
-	for i in range(n_data):
-		for j in range(n_feats):
-			if j == (n_feats-1):
-				w_x[i] += w[j]
-			else:
-				w_x[i] += x[i][j] * w[j]
-	return w_x'''
 	
 class LogisticRegression():
 	"""docstring for LogisticRegression"""
@@ -162,11 +151,8 @@ class LogisticRegression():
 		for i in range(n_data):
 			cm[test_label[i]][predict_label[i]] += 1
 
-		sensitivity = cm[0][0] / (cm[0][0] + cm[1][1])
-		if cm[0][1] == 0 and cm[1][0] == 0:
-			specificity = np.Infinity
-		else:
-			specificity = cm[0][1] / (cm[0][1] + cm[1][0])
+		sensitivity = cm[0][0] / (cm[0][0] + cm[1][0])
+		specificity = cm[1][1] / (cm[0][1] + cm[1][1])
 		accuracy = (cm[0][0] + cm[1][1]) / (cm[0][0] + cm[0][1] + cm[1][0] + cm[1][1])
 
 		return cm, sensitivity, specificity, accuracy
