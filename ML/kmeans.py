@@ -9,6 +9,7 @@ def show_usage():
 	print("[Usage]\t%s [data_path] [dataset]" %(sys.argv[0]))
 	print("\tdata_path: dataset directory")
 	print("\tdataset: test1 or test2")
+	print("\tclusters: # of clusters")
 
 def read_data(path):
 	# dataset
@@ -31,9 +32,9 @@ def IsConverged(new, old):
 
 class KMeans(object):
 	"""docstring for KMeans"""
-	def __init__(self):
-		self.n_cluster = 0
-		self.n_feats = 0
+	def __init__(self, n_clusters, n_feats):
+		self.n_clusters = n_clusters
+		self.n_feats = n_feats
 		self.tsse_ = 0.0
 		self.centroids = None
 		self.plots = []
@@ -43,14 +44,10 @@ class KMeans(object):
 	def plot_colors(self):
 		return self.colors
 
-	def fit(self, x, n_cluster, n_feats):
+	def fit(self, x):
 		n_data = len(x)
-		self.n_cluster = n_cluster
-		self.n_feats = n_feats
-		print("%d cluster"%*(self.n_cluster))
-		print("===============================")
 		# random initial
-		init = np.random.random_integers(0, n_data-1, self.n_cluster)
+		init = np.random.random_integers(0, n_data-1, self.n_clusters)
 		self.centroids = [x[i] for i in init]
 
 		results = [0] * n_data
@@ -61,9 +58,9 @@ class KMeans(object):
 			new_tsse_ = 0.0
 			# update membership
 			for i in range(n_data):
-				dist = [0.0] * self.n_cluster
+				dist = [0.0] * self.n_clusters
 				sq_err = float("inf")
-				for k in range(self.n_cluster):
+				for k in range(self.n_clusters):
 					for d in range(self.n_feats):
 						dist[k] += (x[i][d] - self.centroids[k][d])**2
 					if dist[k] < sq_err:
@@ -76,14 +73,14 @@ class KMeans(object):
 			p.diamond(np.array(self.centroids)[:, 0], np.array(self.centroids)[:, 1], size=20)
 			self.plots.append(p)
 			# update centroids
-			new_centroids = [[0.0]*self.n_feats for i in range(self.n_cluster)]
-			cluster_size = [0.0] * self.n_cluster
+			new_centroids = [[0.0]*self.n_feats for i in range(self.n_clusters)]
+			cluster_size = [0.0] * self.n_clusters
 			for i in range(n_data):
 				cluster_size[results[i]] += 1
 				for d in range(self.n_feats):
 					new_centroids[results[i]][d] += x[i][d]
 
-			for k in range(self.n_cluster):
+			for k in range(self.n_clusters):
 				for d in range(self.n_feats):
 					new_centroids[k][d] /= cluster_size[k]
 			
@@ -118,26 +115,26 @@ class KMeans(object):
 		p.scatter(x_data[:, 0], x_data[:, 1], color=self.plot_colors[y_data].tolist())
 		self.plots.append(p)
 		grid = gridplot(self.plots, ncols=n_cols, plot_width=width, plot_height=height)
-		output_file("kmeans_%d_cluster_%s.html"%(self.n_cluster, data_name), \
+		output_file("kmeans_%d_cluster_%s.html"%(self.n_clusters, data_name), \
 			title="kmeans clustering iterations")
 		show(grid)
 
-if len(sys.argv) != 3:
+if len(sys.argv) != 4:
 	show_usage()
 	sys.exit()
 
+k = int(sys.argv[3])
 x_data, y_data = read_data(sys.argv[1]+"\\"+sys.argv[2])
-n_feat = x_data.shape[1]
+n_feats = x_data.shape[1]
 
-for k in range(2, 5):
-	print("kmeans clustering: %d cluster"%(k))
-	kmeans = KMeans()
-	results = kmeans.fit(x=x_data, n_cluster=k, n_feats=n_feat)
-	# cluster results
-	print("Final Centroids")
-	print(kmeans.Centroids_)
-	print("Final Total Sum of square error")
-	print(kmeans.TotalSSE_)
-	kmeans.plot_cluster(data_name=sys.argv[2], x_data=x_data, y_data=y_data)
+kmeans = KMeans(n_clusters=k, n_feats=n_feats)
+print("kmeans clustering: %d clusters"%(k))
+results = kmeans.fit(x=x_data)
+# cluster results
+print("Final Centroids")
+print(kmeans.Centroids_)
+print("Final Total Sum of square error")
+print(kmeans.TotalSSE_)
+kmeans.plot_cluster(data_name=sys.argv[2], x_data=x_data, y_data=y_data)
 
 
