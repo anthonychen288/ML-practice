@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-def mat_tp(mat):
+def mat_tp(mat=np.array([])):
     tmat = []
     if mat.ndim == 1:
         for x in mat:
@@ -13,7 +13,7 @@ def mat_tp(mat):
             tmat.append([row[i] for row in mat])
         return np.array(tmat)
 
-def matmul(mat1, mat2):
+def matmul(mat1=np.array([]), mat2=np.array([])):
     mat = []
     # column number of mat1 has to equal to row number of mat2
     if mat1.shape[1] != mat2.shape[0]:
@@ -33,7 +33,7 @@ def matmul(mat1, mat2):
     return np.array(mat)
 
 
-def LUdecomp(mat):
+def LUdecomp(mat=np.array([])):
 	n = mat.shape[0]
 	# initializing Lower tri matrix to a identity
 	lmat = [[0.0]*n for i in range(n)]
@@ -53,7 +53,7 @@ def LUdecomp(mat):
 					umat[j][k] = float(umat[j][k]) - float(umat[i][k]) * float(lmat[j][i])
 	return np.array(lmat), np.array(umat)
 
-def matinv(mat):
+def matinv(mat=np.array([])):
 	if mat.shape[0] != mat.shape[1]:
 		ValueError("input must be a square matrix")
 	n = mat.shape[0]
@@ -84,8 +84,70 @@ def matinv(mat):
 
 	return np.array(inv)
 
+class LinearRegression():
+	"""docstring for LinearRegression"""
+	def __init__(self, poly_bases, lmbd):
+		self.poly_bases = poly_bases
+		self.lmbd = lmbd
+		self.coefficients = None
+
+	def design_matrix(self, x=np.array([])):
+		n_data = len(x)
+		d = np.zeros((n_data, self.poly_bases))
+		for i in range(n_data):
+			for j in range(self.poly_bases):
+				d[i, j] = x[i] ** (self.poly_bases-j-1)
+		return d
+
+	def train(self, x=np.array([]), y=np.array([])):
+		n_data = x.shape[0]
+		# design matrix
+		design_matrix = self.design_matrix(x)
+		print("design_matrix")
+		print(design_matrix)
+		ata = design_matrix.T.dot(design_matrix)
+		for i in range(self.poly_bases):
+			ata[i, i] += self.lmbd
+		# (At*a+lambda*I)^-1
+		ata_inv = matinv(ata)
+		# (At*a+lambda*I)^-1*At*b
+		weight = ata_inv.dot(design_matrix.T).dot(y)
+		
+		self.coefficients = weight
+
+		return self
+
+	def predict(self, x=np.array([])):
+		n_data = len(x)
+		pred = [0.0] * n_data
+		dm = self.design_matrix(x)
+		pred = dm.dot(self.coefficients)
+		
+		return np.array(pred)
+	# calculate MAE score
+	def score(self, truth_y, pred_y):
+		if len(truth_y) != len(pred_y):
+			raise ValueError("length of truth_y and pred_y should be the same")
+		n_data = len(truth_y)
+		mae = 0.0
+		err = [0.0] * n_data
+		for i in range(n_data):
+			err[i] = abs(target[i] - pred[i])
+			mae += err[i]
+
+		mae = mae / float(n_data)
+		# mean absolute error
+		print("Error")
+		print(np.array(err))
+		
+		return mae
+
+	@property
+	def coefficients_(self):
+		return self.coefficients
+
 if len(sys.argv) < 4:
-	print("[ERROR] missing system parameters")
+	print("[ERROR] missing system arguments")
 	print("Usage:\n")
 	print(sys.argv[0]+" [file_path] [poly_bases] [lambda]")
 	sys.exit()
@@ -110,48 +172,17 @@ with open(filepath) as f:
         data.append([float(x) for x in line.split(",")])
 # to numpy array
 data = np.array(data)
-target = data[:, 0]
+target = data[:, 1]
+train_col = data[:, 0]
+
+linearReg = LinearRegression(poly_bases=bases, lmbd=lmbd)
+pred = linearReg.train(train_col, target).predict(train_col)
+print("coefficients")
+print(linearReg.coefficients_)
 print("target columns(b):")
 print(target)
-train_col = []
-
-for x in data[:, 1]:
-    tmp = []
-    for i in range(bases-1, -1, -1):
-        tmp.append(x**i)
-    train_col.append(tmp)
-train = np.array(train_col)
-print("A:")
-print(train)
-# transpose of data: at
-t_train = mat_tp(train)
-# at*a
-ata = matmul(t_train, train)
-# at*a+lambda*I
-for i in range(ata.shape[0]):
-    ata[i][i] += lmbd
-ata_inv = matinv(ata)
-# print("my weight")
-# (At*a+lambda*I)^-1*At*b
-weight = matmul(matmul(ata_inv, t_train), mat_tp(target))
-ans = [x[0] for x in weight]
-print("coeffients")
-print(ans)
-num = len(target)
-pred = [0.0] * num
-pred = matmul(train, weight).reshape(num, )
-# predicted values
-print("predicted")
+print("predict")
 print(pred)
-mae = 0.0
-err = [0.0] * num
-for i in range(num):
-	err[i] = abs(target[i] - pred[i])
-	mae += err[i]
-
-mae = mae / float(num)
-# absolute error
-print("Error")
-print(np.array(err))
+mae = linearReg.score(target, pred)
 # Mean Absolute Error
 print("\nMAE : %.5f" %(mae))
