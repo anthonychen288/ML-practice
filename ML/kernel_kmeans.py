@@ -46,7 +46,7 @@ class KernelKMeans():
 	def plot_colors(self):
 		return self.colors
 
-	def kernel(self, x=np.array([])):
+	def to_kernel(self, x=np.array([])):
 		'''
 		c & d are for polynomial kernel, 
 		and when c=0.0, d=1.0, it becomes a linear kernel
@@ -68,6 +68,11 @@ class KernelKMeans():
 					for d in range(n_feats):
 						sqr_err += (x[i][d] - x[j][d])**2
 					kernel_x[i][j] = kernel_x[j][i] = exp(-(sqr_err / (2.0 * (self.sigma**2) )))
+			"""
+			sum_X = np.sum(np.square(x), 1)
+			D = np.add(np.add(-2 * x.dot(x.T), sum_X).T, sum_X)
+			kernel_x = np.exp(-D.copy() / (2.0 * self.sigma**2 ))
+			"""
 		else:
 			raise ValueError("Unknown kernel: %s" %(self.kernel_type))
 		
@@ -75,7 +80,7 @@ class KernelKMeans():
 
 	def fit(self, x=np.array([]), max_iter=50):
 		n_data = x.shape[0]
-		kernel_x = self.kernel(x)
+		kernel_x = self.to_kernel(x)
 		# random initial
 		labels = np.random.randint(self.n_clusters, size=n_data)
 		
@@ -90,33 +95,40 @@ class KernelKMeans():
 			for k in range(self.n_clusters):
 				idx, = np.where(labels == k)
 				size = len(idx)
-				gram_matrix = kernel_x[idx, idx]
-				membership[:, k] += -2 * np.sum(kernel_x[:, idx], axis=1) / float(size)
-				membership[:, k] += np.sum(gram_matrix / float(size * size))
+				gram_matrix = kernel_x[idx][:, idx]
 
-			tsse = np.sum(membership)
+				membership[:, k] += np.sum(gram_matrix) / float(size * size)
+				#print(2.0 * np.sum(kernel_x[:, idx], axis=1) / float(size))
+				membership[:, k] -= 2.0 * np.sum(kernel_x[:, idx], axis=1) / float(size)
+
+			tsse = np.sum(membership) ** 2
 			old_labels = labels
 			# update assignment
 			labels = membership.argmin(axis=1)
 			# assignment convergence
-			"""
-			change = len(np.where(old_labels == labels))
+			change  = len(np.where(old_labels != labels)[0])
+			print("number of changes\t%d" %(change))
+			
 			if not change:
 				break
-			"""
+			""""""
 			# TSSE convergence
-			
+			print("Iterations\t%d" %(iterates+1))
+			#print("TSSE\t%f" %(tsse))
+			print("===============================")
+			"""
 			if IsConverged(tsse, old_tsse):
 				break
-
+			"""
 			iterates += 1
 			
 		self.labels_ = labels
 		self.tsse_ = tsse
+		"""
 		print("Iterations\t%d" %(iterates+1))
 		print("TSSE\t%f" %(self.tsse_))
 		print("===============================")
-		
+		"""
 		return self
 
 	@property
@@ -139,6 +151,16 @@ for s in range(20):
 	print("Kernel KMeans clustering: %d cluster rbf kernel with sigma=%.2f" %(k, (s+1)/2.0))
 	kkm.fit(x_data, max_iter=100)
 	print(confusion_matrix(y_data, kkm.labels_))
-	plt.scatter(x_data[:, 0], x_data[:, 1], c=kkm.labels_)
+	plt.scatter(x_data[:, 0], x_data[:, 1], c=kkm.labels_, marker='.')
 	plt.title("sigma %.2f" %((s+1) / 2.0))
 	plt.show()
+"""
+
+kkm = KernelKMeans(n_cluster=k, kernel="rbf", sigma=4.0)
+print("Kernel KMeans clustering: %d cluster rbf kernel with sigma=%.2f" %(k, 4.0))
+kkm.fit(x_data[:200], max_iter=100)
+print(confusion_matrix(y_data[:200], kkm.labels_))
+plt.scatter(x_data[:200, 0], x_data[:200, 1], c=kkm.labels_, marker='.')
+plt.title("sigma %.2f" %(4.0))
+plt.show()
+"""
