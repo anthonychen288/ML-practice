@@ -81,8 +81,8 @@ class spectralClustering():
 		eigen_val, eigen_vec = eig(L)
 		# first k smallest eigenvalue & eigenvector
 		sorted_idx = eigen_val.real.argsort()
-		k_eigen_val = eigen_val[sorted_idx[:k]]
-		k_eigen_vec = eigen_vec[:, sorted_idx[:k]]
+		k_eigen_val = eigen_val[sorted_idx[:self.n_clusters]]
+		k_eigen_vec = eigen_vec[:, sorted_idx[:self.n_clusters]]
 		# normalization
 		norms = np.linalg.norm(k_eigen_vec, ord=2, axis=1)
 		norm_eigen_vec = (k_eigen_vec.T / norms).T
