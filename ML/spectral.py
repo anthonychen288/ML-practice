@@ -57,6 +57,7 @@ class spectralClustering():
 					for d in range(n_feats):
 						sqr_err += (x[i][d] - x[j][d])**2
 					kernel_x[i][j] = kernel_x[j][i] = exp(-(sqr_err / (2.0 * (self.sigma**2) )))
+		# precomputed kernel			
 		elif self.kernel_type == 'precomputed':
 			return np.array(x)
 		else:
@@ -70,7 +71,7 @@ class spectralClustering():
 		I = np.identity(n_data)
 		D = np.sum(W, axis=1) ** (-0.5)
 		
-		return I - (D * W.T * D).T
+		return I - (D * W).T * D
 
 	def fit(self, x=np.array([])):
 		n_data = x.shape[0]
@@ -80,9 +81,15 @@ class spectralClustering():
 		# eigen problem
 		eigen_val, eigen_vec = eig(L)
 		# first k smallest eigenvalue & eigenvector
-		sorted_idx = eigen_val.real.argsort()
-		k_eigen_val = eigen_val[sorted_idx[:self.n_clusters]]
-		k_eigen_vec = eigen_vec[:, sorted_idx[:self.n_clusters]]
+		sorted_idx = eigen_val.argsort()
+		'''
+		# plot eigenvalue from small to large
+		plt.title("Eignevalue")
+		plt.plot(np.sort(eigen_val.real)[:20], 'r.')
+		plt.show()
+		'''
+		k_eigen_val = eigen_val[sorted_idx[:self.n_clusters]].real
+		k_eigen_vec = eigen_vec[:, sorted_idx[:self.n_clusters]].real
 		# normalization
 		norms = np.linalg.norm(k_eigen_vec, ord=2, axis=1)
 		norm_eigen_vec = (k_eigen_vec.T / norms).T
